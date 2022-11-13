@@ -1,5 +1,5 @@
 import './App.css'
-import {useDispatch, useSelector} from "react-redux";
+import {useDispatch, useSelector, useStore} from "react-redux";
 import {
     computeFizzBuzz,
     decrement,
@@ -7,11 +7,10 @@ import {
     pressButtonDecrement,
     pressButtonIncrement,
     releaseButtonDecrement,
-    releaseButtonIncrement
+    releaseButtonIncrement, tick
 } from "./fizzBuzzSlice";
 import {RootState} from "./store";
-import {useEffect} from "react";
-import {useEventListener} from "./helpers";
+import {useEventListener, useTicker} from "./helpers";
 
 /**
  * I am trying to build a fizz buzz application which has:
@@ -25,7 +24,12 @@ import {useEventListener} from "./helpers";
 function App() {
     const dispatch = useDispatch()
     const count = useSelector((state: RootState) => state.fizzBuzz.value)
+    const store = useStore<RootState>()
 
+    useTicker(505, () => {
+        const shouldTick = store.getState().fizzBuzz.decrementKeyState.state == 'HELD' && store.getState().fizzBuzz.incrementKeyState.state == 'HELD'
+        if (shouldTick) { store.dispatch(tick(Date.now())) }
+    }, [store] )
 
     const handleKeyDown = (event: KeyboardEvent) => {
         // if I press "a", then decrement

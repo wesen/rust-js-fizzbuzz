@@ -37,3 +37,10 @@ export function useEventListener<K extends keyof WindowEventMap>(eventName: K, h
         [eventName, element] // Re-run if eventName or element changes
     );
 }
+
+export function useTicker(tickInterval_ms: number, callback: () => void, deps: any[]) {
+    useEffect(() => {
+        const interval = setInterval(callback, tickInterval_ms);
+        return () => clearInterval(interval);
+    }, [tickInterval_ms, ...deps]);
+}

@@ -1,21 +1,33 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit'
+import {Key} from "react";
+
+type KeyState = {
+    state: 'HELD' | 'HANDLED' | 'RELEASED'
+    timestamp_ms: number
+}
 
 export interface CounterState {
     value: number
-    buttonDecrementDown: number | null
-    buttonIncrementDown: number | null
+    decrementKeyState: KeyState
+    incrementKeyState: KeyState
 }
 
 const initialState: CounterState = {
     value: 1,
-    buttonDecrementDown: null,
-    buttonIncrementDown: null,
+    decrementKeyState: {state: 'RELEASED', timestamp_ms: 0},
+    incrementKeyState: {state: 'RELEASED', timestamp_ms: 0},
 }
 
 const HOLD_DURATION_MS = 1000;
 
-function wereButtonsHeldLongEnough(currentTimestamp_ms: number, buttonDecrementDown: number|null, buttonIncrementDown: number|null) {
-    return buttonDecrementDown != null && buttonIncrementDown != null && currentTimestamp_ms - buttonDecrementDown > HOLD_DURATION_MS && currentTimestamp_ms - buttonIncrementDown > HOLD_DURATION_MS
+function wereButtonsHeldLongEnough(
+    currentTimestamp_ms: number,
+    decrementKeyState: KeyState,
+    incrementKeyState: KeyState) {
+    return (decrementKeyState.state == 'HELD' && incrementKeyState.state == 'HELD'
+        && currentTimestamp_ms - decrementKeyState.timestamp_ms > HOLD_DURATION_MS
+        && currentTimestamp_ms - incrementKeyState.timestamp_ms > HOLD_DURATION_MS
+    )
 }
 
 export const fizzBuzzSlice = createSlice({
@@ -30,29 +42,40 @@ export const fizzBuzzSlice = createSlice({
                 state.value -= 1
             }
         },
+        tick: (state, action: PayloadAction<number>) => {
+            console.log("tick", action.payload, state.decrementKeyState, state.incrementKeyState)
+            if (wereButtonsHeldLongEnough(action.payload, state.decrementKeyState, state.incrementKeyState)) {
+                state.decrementKeyState.state = 'HANDLED';
+                state.incrementKeyState.state = 'HANDLED';
+                state.value = 1
+            }
+
+        },
         pressButtonDecrement: (state, action: PayloadAction<number>) => {
-            state.buttonDecrementDown = action.payload
+            if (state.decrementKeyState.state == 'RELEASED') {
+                state.decrementKeyState.state = 'HELD';
+                state.decrementKeyState.timestamp_ms = action.payload;
+                if (state.incrementKeyState.state != 'HELD') {
+                    if (state.value > 1) {
+                        state.value -= 1
+                    }
+                }
+            }
         },
         releaseButtonDecrement: (state, action: PayloadAction<number>) => {
-            state.buttonDecrementDown = null
-            if (state.buttonIncrementDown == null) {
-                if (state.value > 1) {
-                    state.value -= 1
-                }
-            } else if (wereButtonsHeldLongEnough(action.payload, state.buttonDecrementDown, state.buttonIncrementDown)) {
-                state.value = 1
-            }
+            state.decrementKeyState.state = 'RELEASED';
         },
         pressButtonIncrement: (state, action: PayloadAction<number>) => {
-            state.buttonIncrementDown = action.payload
+            if (state.incrementKeyState.state == 'RELEASED') {
+                state.incrementKeyState.state = 'HELD';
+                state.incrementKeyState.timestamp_ms = action.payload;
+                if (state.decrementKeyState.state != 'HELD') {
+                    state.value += 1
+                }
+            }
         },
         releaseButtonIncrement: (state, action: PayloadAction<number>) => {
-            state.buttonIncrementDown = null
-            if (state.buttonDecrementDown == null) {
-                state.value += 1
-            } else if (wereButtonsHeldLongEnough(action.payload, state.buttonDecrementDown, state.buttonIncrementDown)) {
-                state.value = 1
-            }
+            state.incrementKeyState.state = 'RELEASED';
         },
         reset: (state) => {
             state.value = 1
@@ -82,7 +105,8 @@ export const {
     pressButtonDecrement,
     pressButtonIncrement,
     releaseButtonDecrement,
-    releaseButtonIncrement
+    releaseButtonIncrement,
+    tick
 } = fizzBuzzSlice.actions
 
 export default fizzBuzzSlice.reducer
