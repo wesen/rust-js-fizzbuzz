@@ -1,7 +1,17 @@
 import './App.css'
 import {useDispatch, useSelector} from "react-redux";
-import {computeFizzBuzz, decrement, increment} from "./fizzBuzzSlice";
+import {
+    computeFizzBuzz,
+    decrement,
+    increment,
+    pressButtonDecrement,
+    pressButtonIncrement,
+    releaseButtonDecrement,
+    releaseButtonIncrement
+} from "./fizzBuzzSlice";
 import {RootState} from "./store";
+import {useEffect} from "react";
+import {useEventListener} from "./helpers";
 
 /**
  * I am trying to build a fizz buzz application which has:
@@ -15,6 +25,33 @@ import {RootState} from "./store";
 function App() {
     const dispatch = useDispatch()
     const count = useSelector((state: RootState) => state.fizzBuzz.value)
+
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+        // if I press "a", then decrement
+        // if I press "d", then increment
+        // if I hold both for more than one second, then reset
+        if (event.key === "a") {
+            event.preventDefault()
+            dispatch(pressButtonDecrement(Date.now()))
+        } else if (event.key === "d") {
+            event.preventDefault()
+            dispatch(pressButtonIncrement(Date.now()))
+        }
+    }
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+        if (event.key === "a") {
+            event.preventDefault()
+            dispatch(releaseButtonDecrement(Date.now()))
+        } else if (event.key === "d") {
+            event.preventDefault()
+            dispatch(releaseButtonIncrement(Date.now()))
+        }
+    }
+
+    useEventListener('keydown', handleKeyDown)
+    useEventListener('keyup', handleKeyUp)
 
     return (
         <div className="App flex flex-col">
